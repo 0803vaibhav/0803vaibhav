@@ -1,0 +1,21 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "connections_servicebus_name": {
+      "value": "sb-dev-conn"
+    },
+    "ServiceBusNamespace": {
+      "value": "kh-neu-dev"
+    },
+    "serviceBusConnectionString": {
+      "value": "Endpoint=sb://kh-neu-dev.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=6iBA1qsTvw3AdbDwluCSqaxiZAXoVRHXKs5X7AlMJXo="
+    },
+    "location": {
+      "value": "northeurope"
+    },
+    "connectionDisplayName": {
+      "value": "sb-dev-conn"
+    }
+  }
+}

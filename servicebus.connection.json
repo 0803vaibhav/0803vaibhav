@@ -1,0 +1,44 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "connections_servicebus_name": {
+      "type": "string"
+    },
+    "ServiceBusNamespace": {
+      "type": "string"
+    },
+    "serviceBusConnectionString": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "northeurope"
+    },
+    "connectionDisplayName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[parameters('connections_servicebus_name')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "displayName": "[parameters('connectionDisplayName')]",
+        "customParameterValues": {},
+        "api": {
+          "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', 'servicebus')]"
+        },
+        "parameterValues": {
+          "connectionString": "[parameters('serviceBusConnectionString')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

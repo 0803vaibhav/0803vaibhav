@@ -1,0 +1,140 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "servicebus_Namespace": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string"
+    },
+
+    "topics_kh-kbs-002-jobtaskdatatocoupa_name": {
+      "type": "string"
+    },
+
+    "subscriptions_postjobtaskdatatocoupa_name": {
+      "type": "string"
+    },
+    "AuthorizationRules_RootManageSharedAccessKey_name": {
+      "defaultValue": "RootManageSharedAccessKey",
+      "type": "string"
+    },
+    "serviceBusTier": {
+      "defaultValue": "Standard",
+      "type": "string"
+    },
+    "rules_Default_name": {
+      "type": "string"
+    },
+    "lockDuration_Subscription": {
+      "defaultValue": "PT5M",
+      "type": "string"
+    }
+  },
+  "variables": {
+    "serviceBusNamespaceName": "[parameters('servicebus_Namespace')]",
+    "storageAcctName": "[concat('storage', uniqueString(resourceGroup().id))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ServiceBus/namespaces",
+      "sku": {
+        "name": "[parameters('serviceBusTier')]",
+        "tier": "[parameters('serviceBusTier')]"
+      },
+      "name": "[variables('serviceBusNamespaceName')]",
+      "apiVersion": "2017-04-01",
+      "location": "[resourceGroup().location]",
+      "tags": {},
+      "scale": null,
+      "properties": {
+        "provisioningState": "Succeeded",
+        "metricId": "[concat('710ac47a-ec65-429d-a40c-3829f3d4cbb5:', variables('serviceBusNamespaceName'))]",
+        "serviceBusEndpoint": "[concat('https://', variables('serviceBusNamespaceName'),'.servicebus.windows.net:443/')]",
+        "status": "Active"
+      },
+      "dependsOn": []
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/AuthorizationRules",
+      "name": "[concat(variables('serviceBusNamespaceName'), '/', parameters('AuthorizationRules_RootManageSharedAccessKey_name'))]",
+      "apiVersion": "2017-04-01",
+      "location": "[resourceGroup().location]",
+      "scale": null,
+      "properties": {
+        "rights": [
+          "Listen",
+          "Manage",
+          "Send"
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "name": "[concat(variables('serviceBusNamespaceName'), '/', parameters('topics_kh-kbs-002-jobtaskdatatocoupa_name'))]",
+      "apiVersion": "2017-04-01",
+      "location": "[resourceGroup().location]",
+      "scale": null,
+      "properties": {
+        "defaultMessageTimeToLive": "P14D",
+        "maxSizeInMegabytes": 1024,
+        "requiresDuplicateDetection": false,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "status": "Active",
+        "supportOrdering": false,
+        "autoDeleteOnIdle": "P10675199DT2H48M5.4775807S",
+        "enablePartitioning": false,
+        "enableExpress": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "name": "[concat(variables('serviceBusNamespaceName'), '/', parameters('topics_kh-kbs-002-jobtaskdatatocoupa_name'), '/', parameters('subscriptions_postjobtaskdatatocoupa_name'))]",
+      "apiVersion": "2017-04-01",
+      "location": "[resourceGroup().location]",
+      "scale": null,
+      "properties": {
+        "lockDuration": "[parameters('lockDuration_Subscription')]",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P14D",
+        "deadLetteringOnMessageExpiration": false,
+        "deadLetteringOnFilterEvaluationExceptions": false,
+        "maxDeliveryCount": 2000,
+        "status": "Active",
+        "enableBatchedOperations": false,
+        "autoDeleteOnIdle": "P10675199DT2H48M5.4775807S"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]",
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), parameters('topics_kh-kbs-002-jobtaskdatatocoupa_name'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "name": "[concat(variables('serviceBusNamespaceName'), '/', parameters('topics_kh-kbs-002-jobtaskdatatocoupa_name'), '/', parameters('subscriptions_postjobtaskdatatocoupa_name'), '/', parameters('rules_Default_name'))]",
+      "apiVersion": "2017-04-01",
+      "location": "[resourceGroup().location]",
+      "scale": null,
+      "properties": {
+        "action": {},
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1=1"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]",
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), parameters('topics_kh-kbs-002-jobtaskdatatocoupa_name'))]",
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', variables('serviceBusNamespaceName'), parameters('topics_kh-kbs-002-jobtaskdatatocoupa_name'), parameters('subscriptions_postjobtaskdatatocoupa_name'))]"
+      ]
+    }
+  ]
+}
