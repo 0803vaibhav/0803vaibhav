@@ -1,0 +1,114 @@
+parameters: 
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  logicAppName: ''
+  folderName: ''
+  logicAppProject: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'UK South' 
+  triggerName: ''
+  isAPIM: true
+  namedParameters: ''
+  getAPIEndpoint: true
+  keyVaultName: ''
+  getSecretsFromKeyVault: false
+  templateFileName: ''
+  paramFileName: ''
+  logicApps:    
+    - ['','','','']
+  logicApps1:    
+    - ['','','','']
+  logicApps2:    
+    - ['','','','']
+  logicApps3:    
+    - ['','','','']
+  
+
+jobs: 
+  - deployment: Deploy_API  
+    displayName: "Deploy ${{parameters.environment}} job"
+    pool:
+      vmImage: ${{parameters.vmImage}}
+    environment : ${{parameters.environment}}
+    strategy:
+      runOnce:
+        deploy:
+          steps:   
+                - checkout: git://KantarIntegrationPlatform/KH.Integ.PipelineTemplates    
+       
+
+                - publish: '$(Agent.BuildDirectory)/s/PSscripts'
+                  artifact: 'PScripts'
+                
+                - task: AzureKeyVault@1
+                  condition: eq(${{parameters.getSecretsFromKeyVault}},true)
+                  inputs:
+                    azureSubscription: ${{parameters.azureResourceManagerConnection}}
+                    KeyVaultName: ${{parameters.keyVaultName}}
+                    SecretsFilter: '*'
+                    RunAsPreJob: true
+          
+
+                - ${{ each logicApp in parameters.logicApps }}: 
+                    - task: AzurePowerShell@5
+                      condition: and(eq(${{parameters.isAPIM}},true), eq(${{parameters.getAPIEndpoint}},true))
+                      displayName: 'Azure PowerShell script: FilePath'
+                      inputs:
+                        azureSubscription: ${{parameters.azureResourceManagerConnection}}  
+                        ScriptPath: '$(Agent.BuildDirectory)/s/PSscripts/getLogicAppDetails.ps1'
+                        ScriptArguments: '-resourceGroupName ${{logicApp[1]}} -logicAppName ${{logicApp[0]}} -triggerName ${{parameters.triggerName}} -baseUrl ${{logicApp[2]}} -pathUrl ${{logicApp[3]}}'
+                        azurePowerShellVersion: LatestVersion
+                          
+                - ${{ each logicApp1 in parameters.logicApps1 }}: 
+                    - task: AzurePowerShell@5
+                      condition: and(eq(${{parameters.isAPIM}},true), eq(${{parameters.getAPIEndpoint}},true))
+                      displayName: 'Azure PowerShell script: FilePath'
+                      inputs:
+                        azureSubscription: ${{parameters.azureResourceManagerConnection}}  
+                        ScriptPath: '$(Agent.BuildDirectory)/s/PSscripts/getLogicAppDetails.ps1'
+                        ScriptArguments: '-resourceGroupName ${{logicApp1[1]}} -logicAppName ${{logicApp1[0]}} -triggerName ${{parameters.triggerName}} -baseUrl ${{logicApp1[2]}} -pathUrl ${{logicApp1[3]}}'
+                        azurePowerShellVersion: LatestVersion
+                - ${{ each logicApp2 in parameters.logicApps2 }}: 
+                    - task: AzurePowerShell@5
+                      condition: and(eq(${{parameters.isAPIM}},true), eq(${{parameters.getAPIEndpoint}},true))
+                      displayName: 'Azure PowerShell script: FilePath'
+                      inputs:
+                        azureSubscription: ${{parameters.azureResourceManagerConnection}}  
+                        ScriptPath: '$(Agent.BuildDirectory)/s/PSscripts/getLogicAppDetails.ps1'
+                        ScriptArguments: '-resourceGroupName ${{logicApp2[1]}} -logicAppName ${{logicApp2[0]}} -triggerName ${{parameters.triggerName}} -baseUrl ${{logicApp2[2]}} -pathUrl ${{logicApp2[3]}}'
+                        azurePowerShellVersion: LatestVersion  
+                - ${{ each logicApp3 in parameters.logicApps3 }}: 
+                    - task: AzurePowerShell@5
+                      condition: and(eq(${{parameters.isAPIM}},true), eq(${{parameters.getAPIEndpoint}},true))
+                      displayName: 'Azure PowerShell script: FilePath'
+                      inputs:
+                        azureSubscription: ${{parameters.azureResourceManagerConnection}}  
+                        ScriptPath: '$(Agent.BuildDirectory)/s/PSscripts/getLogicAppDetails.ps1'
+                        ScriptArguments: '-resourceGroupName ${{logicApp3[1]}} -logicAppName ${{logicApp3[0]}} -triggerName ${{parameters.triggerName}} -baseUrl ${{logicApp3[2]}} -pathUrl ${{logicApp3[3]}}'
+                        azurePowerShellVersion: LatestVersion                                    
+                
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    source: 'current'
+                    path: '$(Pipeline.Workspace)'                 
+    
+                - task: AzureResourceManagerTemplateDeployment@3
+                  condition: eq(${{parameters.isAPIM}},true)
+                  inputs:
+                    deploymentScope: 'Resource Group'
+                    azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+                    subscriptionId: ${{parameters.subscriptionId}}
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: ${{parameters.resourceGroupName}}
+                    location: ${{parameters.location}}
+                    templateLocation: 'Linked artifact'
+                    csmFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/${{parameters.templateFileName}}'
+                    csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/${{parameters.paramFileName}}'
+        #         overrideParameters: -backendServiceUrl "$(baseUrl)" -backendTemplate "$(pathUrl)"
+
+
+    
+          

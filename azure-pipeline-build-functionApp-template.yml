@@ -1,0 +1,42 @@
+parameters:
+  environment: ''
+  vmImage: 'vs2017-win2016'   
+  functionAppProject: ''
+
+jobs:
+  - job: Build_FunctionApp
+    pool:
+      vmImage: ${{parameters.vmImage}} 
+    steps: 
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet restore'
+      inputs:
+        command: restore
+        projects: |
+            **/${{parameters.functionAppProject}}/${{parameters.functionAppProject}}.csproj       
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build'
+      inputs:
+        command: build
+        projects: |
+            **/${{parameters.functionAppProject}}/${{parameters.functionAppProject}}.csproj 
+        arguments: '--configuration $(BuildConfiguration)'
+
+    - task: DotNetCoreCLI@2        
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        publishWebProjects: false
+        zipAfterPublish: true
+        projects: |
+            **/${{parameters.functionAppProject}}/${{parameters.functionAppProject}}.csproj  
+        arguments: '--no-restore --configuration Release --output $(Build.ArtifactStagingDirectory)'    
+
+    - task: CopyFiles@2
+      inputs:
+        Contents: '**/${{parameters.functionAppProject}}/**/*.json'
+        TargetFolder: '$(build.artifactstagingdirectory)'    
+
+    - publish: '$(Build.ArtifactStagingDirectory)'
+      artifact: 'drop'  

@@ -1,0 +1,48 @@
+parameters:
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  folderName: ''
+  projectName: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'UK South'
+  namedParameters: ''
+  keyVaultName: ''
+    
+
+jobs: 
+  - deployment: Deploy_ServiceBus_Connection
+    displayName: "Deploy ${{parameters.environment}} job"
+    pool:
+      vmImage: ${{parameters.vmImage}}
+    environment : ${{parameters.environment}}
+    strategy:
+      runOnce:
+        deploy:
+          steps: 
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    source: 'current'
+                    path: '$(Pipeline.Workspace)'    
+                    
+                - task: AzureKeyVault@1
+                  inputs:
+                    azureSubscription: ${{parameters.azureResourceManagerConnection}}
+                    KeyVaultName: ${{parameters.keyVaultName}}
+                    SecretsFilter: '*'
+                    RunAsPreJob: true
+
+                - task: AzureResourceManagerTemplateDeployment@3                 
+                  inputs:
+                    deploymentScope: 'Resource Group'
+                    azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+                    subscriptionId: ${{parameters.subscriptionId}}
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: ${{parameters.resourceGroupName}}
+                    location: ${{parameters.location}}
+                    templateLocation: 'Linked artifact'
+                    csmFile: '$(Pipeline.Workspace)/drop/${{parameters.projectName}}/${{parameters.folderName}}/azuredataanalyticscollector.connection.json'
+                    csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.projectName}}/${{parameters.folderName}}/azuredataanalyticscollector.connection.parameters.${{parameters.environment}}.json'
+                    overrideParameters: ${{parameters.namedParameters}}
+                    deploymentMode: 'Incremental'               

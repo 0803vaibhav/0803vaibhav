@@ -1,0 +1,49 @@
+parameters:
+  environment: ''
+  vmImage: 'vs2017-win2016'
+  resourceGroupName: ''  
+  functionAppProject: ''
+  funcAppName: ''
+  azureResourceManagerConnection: ''
+  subscriptionId: ''
+  location: 'UK South'
+  
+  
+
+jobs: 
+  - deployment: Deploy_FunctionApp   
+    displayName: "Deploy Function App in ${{parameters.environment}} job"
+    pool:
+      vmImage: ${{parameters.vmImage}}
+    environment : ${{parameters.environment}}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+                
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    buildType: 'current'
+                    targetPath: '$(Pipeline.Workspace)'
+
+                - task: AzureResourceManagerTemplateDeployment@3
+                  inputs:
+                    deploymentScope: 'Resource Group'
+                    azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+                    subscriptionId: ${{parameters.subscriptionId}}
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: ${{parameters.resourceGroupName}}
+                    location: ${{parameters.location}}
+                    templateLocation: 'Linked artifact'
+                    csmFile: '$(Pipeline.Workspace)/drop/${{parameters.functionAppProject}}/ArmTemplates/functiondeploy.json'
+                    csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.functionAppProject}}/ArmTemplates/functiondeploy.parameters.${{parameters.environment}}.json'
+                    deploymentMode: 'Incremental' 
+
+                - task: AzureRmWebAppDeployment@4
+                  inputs:
+                    connectionType: 'AzureRM'
+                    azureSubscription: ${{parameters.azureResourceManagerConnection}}
+                    appType: 'functionApp'
+                    webAppName: ${{parameters.funcAppName}}
+                    resourceGroupName: ${{parameters.resourceGroupName}}
+                    package: '$(Pipeline.Workspace)/drop/${{parameters.functionAppProject}}.zip'

@@ -1,0 +1,38 @@
+parameters:
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  folderName: ''
+  projectName: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'UK South'
+    
+
+jobs: 
+  - deployment: Deploy_Schema 
+    displayName: "Deploy ${{parameters.environment}} job"
+    pool:
+      vmImage: ${{parameters.vmImage}}
+    environment : ${{parameters.environment}}
+    strategy:
+      runOnce:
+        deploy:
+          steps: 
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    source: 'current'
+                    path: '$(Pipeline.Workspace)'                
+
+                - task: AzureResourceManagerTemplateDeployment@3                 
+                  inputs:
+                    deploymentScope: 'Resource Group'
+                    azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+                    subscriptionId: ${{parameters.subscriptionId}}
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: ${{parameters.resourceGroupName}}
+                    location: ${{parameters.location}}
+                    templateLocation: 'Linked artifact'
+                    csmFile: '$(Pipeline.Workspace)/drop/${{parameters.projectName}}/${{parameters.folderName}}/schema.json'
+                    csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.projectName}}/${{parameters.folderName}}/schema.parameters.${{parameters.environment}}.json'                    
+                    deploymentMode: 'Incremental'               

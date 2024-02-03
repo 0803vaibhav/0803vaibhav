@@ -1,0 +1,28 @@
+parameters:
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  logicAppName: ''
+  folderName: ''
+  logicAppProject: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'North Europe' 
+  publishMap: false
+  integrationAccountName: ''
+  maps:    
+    - ['','','']
+  
+    
+steps:
+        
+
+      - ${{ each map in parameters.maps }}: 
+          - task: AzurePowerShell@5
+            condition: eq(${{parameters.publishMap}},true)
+            displayName: 'Deploy Maps'
+            inputs:
+              azureSubscription: ${{parameters.azureResourceManagerConnection}}  
+              ScriptPath: '../ScriptsAndTemplates/PSscripts/uploadIntegrationAccountMaps.ps1'
+              ScriptArguments: '-filePath $(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/maps/${{map[0]}} -resourceGroupName ${{parameters.resourceGroupName}} -integrationAccount ${{parameters.integrationAccountName}} -mapName ${{map[0]}} -mapType ${{map[1]}}  -contentType ${{map[2]}} -location ${{parameters.location}}'
+              azurePowerShellVersion: LatestVersion  

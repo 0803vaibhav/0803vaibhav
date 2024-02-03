@@ -1,0 +1,74 @@
+parameters: 
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  logicAppName: ''
+  folderName: ''
+  logicAppProject: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'UK South' 
+  triggerName: ''
+  isAPIM: true
+  namedParameters: ''
+  getAPIEndpoint: true
+  keyVaultName: ''
+  getSecretsFromKeyVault: false
+  logicApps:    
+    - ['','','','']
+
+steps:
+      - ${{ if eq(parameters.isAPIM, true) }}:
+        - checkout: git://KantarIntegrationPlatform/KH.Integ.PipelineTemplates    
+       
+
+        - publish: '$(Agent.BuildDirectory)/s/PSscripts'
+          artifact: 'PScripts'
+
+        - task: AzureKeyVault@1
+          condition: eq(${{parameters.getSecretsFromKeyVault}},true)
+          inputs:
+            azureSubscription: ${{parameters.azureResourceManagerConnection}}
+            KeyVaultName: ${{parameters.keyVaultName}}
+            SecretsFilter: '*'
+            RunAsPreJob: true
+
+        - ${{ each logicApp in parameters.logicApps }}: 
+            - task: AzurePowerShell@5
+              condition: and(eq(${{parameters.isAPIM}},true), eq(${{parameters.getAPIEndpoint}},true))
+              displayName: 'Azure PowerShell script: FilePath'
+              inputs:
+              azureSubscription: ${{parameters.azureResourceManagerConnection}}  
+              ScriptPath: '$(Agent.BuildDirectory)/s/PSscripts/getLogicAppDetailsv1.ps1'
+              ScriptArguments: '-resourceGroupName ${{logicApp[1]}} -logicAppName ${{logicApp[0]}} -triggerName ${{parameters.triggerName}} -baseUrl ${{logicApp[2]}} -pathUrl ${{logicApp[3]}}'
+              azurePowerShellVersion: LatestVersion
+                
+        - task: AzureResourceManagerTemplateDeployment@3
+          condition: and(eq(${{parameters.isAPIM}},true), not(contains('${{parameters.environment}}','prd')))
+          inputs:
+            deploymentScope: 'Resource Group'
+            azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+            subscriptionId: ${{parameters.subscriptionId}}
+            action: 'Create Or Update Resource Group'
+            resourceGroupName: ${{parameters.resourceGroupName}}
+            location: ${{parameters.location}}
+            templateLocation: 'Linked artifact'
+            csmFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/api/apideploy.json'
+            csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/api/apideploy.parameters.${{parameters.environment}}.json'
+            overrideParameters: -backendServiceUrl "$(baseUrl)" -backendTemplate "$(pathUrl)"
+
+
+        - task: AzureResourceManagerTemplateDeployment@3
+          condition: and(eq(${{parameters.isAPIM}},true), contains('${{parameters.environment}}','prd'))
+          inputs:
+            deploymentScope: 'Resource Group'
+            azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+            subscriptionId: ${{parameters.subscriptionId}}
+            action: 'Create Or Update Resource Group'
+            resourceGroupName: ${{parameters.resourceGroupName}}
+            location: ${{parameters.location}}
+            templateLocation: 'Linked artifact'
+            csmFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/api/apideploy.json'
+            csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/api/apideploy.parameters.${{parameters.environment}}.json'
+            overrideParameters: -backendServiceUrl "$(baseUrl)" -backendTemplate "$(pathUrl)" -backendServiceUrlWeu "$(baseUrlWeu)" -backendTemplateWeu "$(pathUrlWeu)"
+          

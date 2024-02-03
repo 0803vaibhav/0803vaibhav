@@ -1,0 +1,43 @@
+parameters:
+  environment: 'Dev'
+  vmImage: 'vs2017-win2016'  
+  projectName: ''
+
+jobs:
+  - job: Build_TestProject
+    pool:
+      vmImage: ${{parameters.vmImage}} 
+    steps: 
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet restore'
+      inputs:
+        command: restore
+        projects: |
+            **/${{parameters.projectName}}.test/${{parameters.projectName}}.test.csproj       
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build'
+      inputs:
+        command: build
+        projects: |
+            **/${{parameters.projectName}}.test/${{parameters.projectName}}.test.csproj 
+        arguments: '--configuration $(BuildConfiguration)'
+
+    - task: DotNetCoreCLI@2        
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        publishWebProjects: false
+        zipAfterPublish: false
+        projects: |
+            **/${{parameters.projectName}}.test/${{parameters.projectName}}.test.csproj 
+        arguments: '--no-restore --configuration Release --output $(Build.ArtifactStagingDirectory)'  
+
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(system.defaultworkingdirectory)'
+        Contents: '**\bin\$(BuildConfiguration)\** **\$(BuildConfiguration)\${{parameters.projectName}}.test.dll !**\obj\**'
+        TargetFolder: '$(build.artifactstagingdirectory)'
+
+    - publish: '$(Build.ArtifactStagingDirectory)'
+      artifact: 'testFiles' 

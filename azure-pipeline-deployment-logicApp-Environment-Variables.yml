@@ -1,0 +1,53 @@
+parameters: 
+  environment: 'Dev'
+  vmImage: 'vs2017-win2016'
+  resourceGroupName: ''
+  logicAppName: ''
+  folderName: ''
+  logicAppProject: ''
+  azureResourceManagerConnection: 'Free Trial (58a3a0b7-c36d-420b-ac7f-fc89da56b280)'  
+  subscriptionId: '58a3a0b7-c36d-420b-ac7f-fc89da56b280'
+  location: 'UK South'
+  testscenarios: ['AllSuccess','SBFailure'] 
+  triggerName: ''
+  isAPIM: true
+  keyVaultName: ''
+  namedParameters: ''
+  getAPIEndpoint: true
+  getSecretsFromKeyVault: false
+  logicAppParameters: ''
+  logicApps:    
+    - ['','','','']
+  
+
+steps:  
+      - checkout: self
+      - task: AzureKeyVault@1
+        displayName: Getting credentials for the integration tests
+        inputs:
+          azureSubscription: devops-kh-dev-conn
+          KeyVaultName: KV-BSTVAULT-DEV-NEU-01
+          SecretsFilter: 'khClientSecret,khClientId,khSubscriptionId,khTenentId,khServiceBusAccessKey,khSftpPassphrase,khSftpUserName'
+          RunAsPreJob: false
+
+      - task: PowerShell@2
+        inputs:
+            targetType: 'inline'
+            script: |
+                # Write your PowerShell commands here.
+                $env:CLIENT_ID = '$(khClientId)'
+                $env:CLIENT_SECRET = '$(khClientSecret)'
+                $env:SUBSCRIPTION_ID = '$(khSubscriptionId)'
+                $env:TENANT_ID = '$(khTenentId)'
+                $env:SHARED_SB_ACCESSKEY = '$(khServiceBusAccessKey)'
+                $env:KANTAR_SFTP_PASSPHRASE = '$(khSftpPassphrase)'
+                $env:KANTAR_SFTP_USERNAME = '$(khSftpUserName)'
+                Write-Host "Environment Variables"                
+                Write-Host "##vso[task.setvariable variable=CLIENT_ID;]$(khClientId)"
+                Write-Host "##vso[task.setvariable variable=CLIENT_SECRET;]$(khClientSecret)"
+                Write-Host "##vso[task.setvariable variable=SUBSCRIPTION_ID;]$(khSubscriptionId)"
+                Write-Host "##vso[task.setvariable variable=TENANT_ID;]$(khTenentId)"
+                Write-Host "##vso[task.setvariable variable=SHARED_SB_ACCESSKEY;]$(khServiceBusAccessKey)"
+                Write-Host "##vso[task.setvariable variable=KANTAR_SFTP_PASSPHRASE;]$(khSftpPassphrase)"
+                Write-Host "##vso[task.setvariable variable=KANTAR_SFTP_USERNAME;]$(khSftpUserName)"
+                

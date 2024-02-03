@@ -1,0 +1,47 @@
+parameters: 
+  environment: 'Dev'
+  vmImage: 'vs2017-win2016'
+  resourceGroupName: ''
+  logicAppName: ''
+  folderName: ''
+  logicAppProject: ''
+  azureResourceManagerConnection: 'Free Trial (58a3a0b7-c36d-420b-ac7f-fc89da56b280)'  
+  subscriptionId: '58a3a0b7-c36d-420b-ac7f-fc89da56b280'
+  location: 'UK South'
+  testscenarios: ['AllSuccess','SBFailure'] 
+  triggerName: ''
+  isAPIM: true
+  keyVaultName: ''
+  namedParameters: ''
+  getAPIEndpoint: true
+  getSecretsFromKeyVault: false
+  logicAppParameters: ''
+  templateFileName: ''
+  paramFileName: ''
+  logicApps:    
+    - ['','','','']
+  
+
+steps:  
+      - task: AzureResourceManagerTemplateDeployment@3
+        condition: eq('${{parameters.environment}}','Dev')
+        inputs:
+          deploymentScope: 'Resource Group'
+          azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+          subscriptionId: ${{parameters.subscriptionId}}
+          action: 'Create Or Update Resource Group'
+          resourceGroupName: ${{parameters.resourceGroupName}}
+          location: ${{parameters.location}}
+          templateLocation: 'Linked artifact'
+          csmFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/logicapp/${{parameters.templateFileName}}'
+          csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/logicapp/${{parameters.paramFileName}}'          
+          overrideParameters: ${{parameters.logicAppParameters}}
+          deploymentMode: 'Incremental' 
+
+ 
+               
+
+                
+                
+     
+          

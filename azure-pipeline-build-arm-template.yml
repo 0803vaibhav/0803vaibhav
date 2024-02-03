@@ -1,0 +1,18 @@
+parameters:
+  environment: 'Dev'
+  vmImage: 'vs2017-win2016' 
+  CopyContents: ''
+
+jobs:
+  - job: Build_ArmTemplates
+    pool:
+      vmImage: ${{parameters.vmImage}} 
+    steps:
+
+    - task: CopyFiles@2
+      inputs:
+        Contents: ${{parameters.CopyContents}}
+        TargetFolder: '$(build.artifactstagingdirectory)'    
+
+    - publish: '$(Build.ArtifactStagingDirectory)'
+      artifact: 'drop'       

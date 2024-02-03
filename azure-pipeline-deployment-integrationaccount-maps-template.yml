@@ -1,0 +1,40 @@
+parameters:
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  logicAppName: ''
+  folderName: ''
+  logicAppProject: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'UK South' 
+  publish: false,
+  integrationAccountName: ''
+  maps:    
+    - ['','']
+  
+    
+
+jobs: 
+  - deployment: Deploy_IntgAccount_Maps
+    displayName: "Deploy ${{parameters.environment}} job"
+    pool:
+      vmImage: ${{parameters.vmImage}}
+    environment : ${{parameters.environment}}
+    strategy:
+      runOnce:
+        deploy:
+          steps: 
+                - checkout: git://Atlas2-CDIP/cdip-integ-pipelineTemplates 
+                - publish: '$(Agent.BuildDirectory)/s/PSscripts'
+                  artifact: 'PScripts'
+
+                - ${{ each map in parameters.maps }}: 
+                    - task: AzurePowerShell@5
+                      condition: eq(${{parameters.publish}},true)
+                      displayName: 'Azure PowerShell script: FilePath'
+                      inputs:
+                        azureSubscription: ${{parameters.azureResourceManagerConnection}}  
+                        ScriptPath: '$(Agent.BuildDirectory)/s/PSscripts/uploadIntegrationAccountMaps.ps1'
+                        ScriptArguments: '-filePath $(Pipeline.Workspace)/drop/${{parameters.projectName}}/${{parameters.folderName}}/maps/${{map[0]}} -resourceGroupName ${{parameters.resourceGroupName}} -integrationAccount ${{parameters.integrationAccountName}} -mapName ${{map[0]}} -mapType ${{map[1]}}  -contentType ${{map[2]}} -location ${{parameters.location}}'
+                        azurePowerShellVersion: LatestVersion  

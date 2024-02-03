@@ -1,0 +1,152 @@
+parameters:
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  logicAppName: ''
+  folderName: ''
+  testFolderName: ''
+  
+  logicAppProject: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'UK South'
+  testscenarios: ['','']  
+  triggerName: ''
+  isAPIM: true
+  namedParameters: ''
+  logicAppParameters: ''
+  keyVaultName: ''
+  getAPIEndpoint: true
+  getSecretsFromKeyVault: false
+  logicApps:    
+    - ['','','','']
+  
+    
+
+jobs: 
+  - deployment: Deploy_LogicApp  
+    displayName: "Deploy ${{parameters.environment}} job"
+    pool:
+      vmImage: ${{parameters.vmImage}}
+    environment : ${{parameters.environment}}
+    strategy:
+      runOnce:
+        deploy:
+          steps:               
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    source: 'current'
+                    path: '$(Pipeline.Workspace)'                 
+
+                - template:  ${{variables['Build.StagingDirectory']}}/templates/azure-pipeline-deployment-logicApp-testscenarios-template.yml                  
+                  parameters:
+                      environment: ${{parameters.environment}}
+                      vmImage: 'vs2017-win2016'
+                      resourceGroupName: ${{parameters.resourceGroupName}}
+                      logicAppName: ${{parameters.logicAppName}}
+                      logicAppProject: ${{parameters.logicAppProject}}
+                      folderName: ${{parameters.folderName}}
+                      azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}  
+                      subscriptionId: ${{parameters.subscriptionId}}
+                      location: ${{parameters.location}}
+                      testscenarios: ${{parameters.testscenarios}} 
+                      triggerName: ${{parameters.triggerName}}
+                      isAPIM: ${{parameters.isAPIM}}   
+                      getAPIEndpoint: ${{parameters.getAPIEndpoint}}
+                      namedParameters: ${{parameters.namedParameters}}
+                      logicAppParameters: ${{parameters.logicAppParameters}}
+                      getSecretsFromKeyVault: ${{parameters.getSecretsFromKeyVault}}
+                      keyVaultName: ${{parameters.keyVaultName}}
+                      logicApps: ${{parameters.logicApps}}
+
+                - task: AzureResourceManagerTemplateDeployment@3
+                  condition: ne('${{parameters.environment}}','Dev')
+                  inputs:
+                    deploymentScope: 'Resource Group'
+                    azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+                    subscriptionId: ${{parameters.subscriptionId}}
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: ${{parameters.resourceGroupName}}
+                    location: ${{parameters.location}}
+                    templateLocation: 'Linked artifact'
+                    csmFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/logicapp/LogicApp.json'
+                    csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/logicapp/LogicApp.parameters.${{parameters.environment}}.json'                                        
+                    overrideParameters: ${{parameters.logicAppParameters}}
+                    deploymentMode: 'Incremental' 
+
+                - ${{ if ne(parameters.environment, 'Dev') }}:
+                  - template:  ${{variables['Build.StagingDirectory']}}/templates/azure-pipeline-deployment-APIM-template.yml                  
+                    parameters:
+                        environment: ${{parameters.environment}}
+                        vmImage: 'vs2017-win2016'
+                        resourceGroupName: ${{parameters.resourceGroupName}}
+                        logicAppName: ${{parameters.logicAppName}}
+                        logicAppProject: ${{parameters.logicAppProject}}
+                        folderName: ${{parameters.folderName}}
+                        azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}  
+                        subscriptionId: ${{parameters.subscriptionId}}
+                        location: ${{parameters.location}} 
+                        triggerName: ${{parameters.triggerName}} 
+                        isAPIM: ${{parameters.isAPIM}}   
+                        getAPIEndpoint: ${{parameters.getAPIEndpoint}}
+                        namedParameters: ${{parameters.namedParameters}}
+                        getSecretsFromKeyVault: ${{parameters.getSecretsFromKeyVault}}
+                        keyVaultName: ${{parameters.keyVaultName}}    
+                        logicApps: ${{parameters.logicApps}}
+                        
+                - task: NuGetCommand@2
+                  displayName: Restore packages
+                  inputs:
+                    command: restore
+                    restoreSolution: KH-KGS-Avature-Workday-Api-Solution/KH-KGS-004-CandidateStatus-nUnitTestCases/KH-KGS-004-CandidateStatus-nUnitTestCases.csproj
+                   #restoreSolution: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.testFolderName}}/${{parameters.testFolderName}}.csproj'
+                    feedsToUse: select
+                    restoreDirectory: '$(Build.SourcesDirectory)\KH-KGS-Avature-Workday-Api-Solution\packages'
+                   #restoreDirectory: '$(Build.SourcesDirectory)\${{parameters.logicAppProject}}\packages'
+                - task: VSBuild@1
+                  displayName: Build Test
+                  inputs:
+                    solution: KH-KGS-Avature-Workday-Api-Solution/KH-KGS-004-CandidateStatus-nUnitTestCases/KH-KGS-004-CandidateStatus-nUnitTestCases.csproj
+                   #solution: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.testFolderName}}/${{parameters.testFolderName}}.csproj'
+                    msBuildArgs: '/p:OutputPath=$(System.DefaultWorkingDirectory)'
+                    platform: 'Any CPU'
+                    configuration: 'Debug'
+                - task: VSTest@2
+                  displayName: Execute Tests
+                  inputs:
+                    testAssemblyVer2: |
+                      **\${{parameters.testFolderName}}.Test.dll
+                      !**\*TestAdapter.dll
+                      !**\obj\**
+                    searchFolder: '$(System.DefaultWorkingDirectory)'
+                    platform: 'Any CPU'
+                    configuration: 'Debug'
+ 
+ #         - task: AzureResourceManagerTemplateDeployment@3
+ #           condition: eq('${{parameters.environment}}','Dev')
+ #           inputs:
+ #           deploymentScope: 'Resource Group'
+ #            azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+ #            subscriptionId: ${{parameters.subscriptionId}}
+ #            action: 'Create Or Update Resource Group'
+ #            resourceGroupName: ${{parameters.resourceGroupName}}
+ #            location: ${{parameters.location}}
+ #            templateLocation: 'Linked artifact'
+ #            csmFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/logicapp/LogicApp.json'
+ #            csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.logicAppProject}}/${{parameters.folderName}}/logicapp/LogicApp.parameters.${{parameters.environment}}.${{scenario}}.json'              
+ #            overrideParameters: ${{parameters.logicAppParameters}}
+ #            deploymentMode: 'Incremental'            
+
+#           - task: VSTest@2
+#            condition: eq('${{parameters.environment}}','Dev')
+#            inputs:
+#              testSelector: 'testAssemblies'
+#              testAssemblyVer2: |
+#                **\${{parameters.testFolderName}}.Test.dll   
+#                !**\*TestAdapter.dll       
+#                !**\obj\**
+#              searchFolder: '$(Pipeline.Workspace)/testFiles/${{parameters.logicAppProject}}.Test/'              
+#              testFiltercriteria: 'TestCategory=${{scenario}}'        
+
+                                 

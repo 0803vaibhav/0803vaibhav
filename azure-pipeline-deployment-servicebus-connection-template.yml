@@ -1,0 +1,33 @@
+parameters:
+  environment: 'Dev'
+  vmImage: ''
+  resourceGroupName: ''
+  folderName: ''
+  projectName: ''
+  azureResourceManagerConnection: ''  
+  subscriptionId: ''
+  location: 'UK South'
+  namedParameters: ''
+  keyVaultName: ''
+    
+
+steps: 
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                   source: 'current'
+                   path: '$(Pipeline.Workspace)'   
+                
+                - task: AzureResourceManagerTemplateDeployment@3
+                  displayName: 'Deploy Service bus connection'
+                  inputs:
+                    deploymentScope: 'Resource Group'
+                    azureResourceManagerConnection: ${{parameters.azureResourceManagerConnection}}
+                    subscriptionId: ${{parameters.subscriptionId}}
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: ${{parameters.resourceGroupName}}
+                    location: ${{parameters.location}}
+                    templateLocation: 'Linked artifact'
+                    csmFile: '$(Pipeline.Workspace)/drop/${{parameters.projectName}}/ServiceBus/servicebus.connection.json'
+                    csmParametersFile: '$(Pipeline.Workspace)/drop/${{parameters.projectName}}/ServiceBus/servicebus.connection.parameters.${{parameters.environment}}.json'
+                    overrideParameters: ${{parameters.namedParameters}}
+                    deploymentMode: 'Incremental'               

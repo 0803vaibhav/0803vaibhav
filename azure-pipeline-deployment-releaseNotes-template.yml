@@ -1,0 +1,133 @@
+parameters: 
+  environment: 'Dev'
+  vmImage: 'vs2017-win2016'
+  OrganizationName: 'HS2Atlas'
+  ProjectName: 'Atlas2-CDIP'
+  PAT: ''
+  WikiName: 'Atlas2-CDIP.wiki'
+  
+
+steps:       
+
+      - task: XplatGenerateReleaseNotes@3
+        inputs:
+          outputfile: '$(Build.ArtifactStagingDirectory)\releasenotes.md'
+          templateLocation: 'InLine'
+          inlinetemplate: |
+            # Notes for release  $(Build.DefinitionName)
+            **Release Number**  : $(Build.BuildNumber)                       
+            **Build Number**: {{buildDetails.id}}
+            **Build Reason**  : $(Build.Reason)                        
+            **Source Branch** : $(build.sourceBranch) 
+            
+            # Associated Work Items ({{workItems.length}})
+            {{#forEach this.workItems}}
+            {{#if isFirst}}### WorkItems {{/if}}
+            *  **{{this.id}}**  {{lookup this.fields 'System.Title'}}
+                - **WIT** {{lookup this.fields 'System.WorkItemType'}} 
+                - **Tags** {{lookup this.fields 'System.Tags'}}
+                - **Assigned** {{#with (lookup this.fields 'System.AssignedTo')}} {{displayName}} {{/with}}
+                - **Description** {{{lookup this.fields 'System.Description'}}}
+                - **Parents**
+            {{#forEach this.relations}}
+            {{#if (contains this.attributes.name 'Parent')}}
+            {{#with (lookup_a_work_item ../../relatedWorkItems  this.url)}}
+                  - {{this.id}} - {{lookup this.fields 'System.Title'}} 
+            {{/with}}
+            {{/if}}
+            {{/forEach}} 
+                - **Children**
+            {{#forEach this.relations}}
+            {{#if (contains this.attributes.name 'Child')}}
+            {{#with (lookup_a_work_item ../../relatedWorkItems  this.url)}}
+                  - {{this.id}} - {{lookup this.fields 'System.Title'}} 
+            {{/with}}
+            {{/if}}
+            {{/forEach}} 
+            {{/forEach}} 
+            
+            # Associated Commits ({{commits.length}})
+            {{#forEach commits}}
+            {{#if isFirst}}### Associated commits{{/if}}
+            * ** ID{{this.id}}** 
+                -  **Message:** {{this.message}}
+                -  **Commited by:** {{this.author.displayName}} 
+            {{/forEach}}
+          dumpPayloadToConsole: false
+          dumpPayloadToFile: false
+          replaceFile: true
+          getParentsAndChildren: True
+
+      - task: PowerShell@2
+        inputs:
+          targetType: 'inline'
+          script: |
+            $OrganizationName = '${{parameters.OrganizationName}}'  
+            $ProjectName = '${{parameters.ProjectName}}' 
+            $PAT = '${{parameters.PAT}}'  
+            $WikiName = '${{parameters.WikiName}}'  
+            $dateStr = Get-Date -Format "yyyMMdd"
+            $WikiFolder = '/CDIP/Integration/ReleaseNotes' + '/' + $dateStr            
+            $Header = @{
+                            'Authorization' = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$($PAT)")) 
+                        }
+            $content = [IO.File]::ReadAllText("$(Build.ArtifactStagingDirectory)\releasenotes.md")            
+            $uri2 = ('https://dev.azure.com/{0}/{1}/_apis/wiki/wikis/{2}/pages?path={3}&api-version=5.0' -f $OrganizationName, $ProjectName, $WikiName, $WikiFolder)                          
+                      
+                        
+            $params = @{
+                'Uri'         = $uri2
+                'Headers'     = $Header
+                'Method'      = 'Put'
+              'ContentType' = 'application/json; charset=utf-8'                         
+            }                                  
+            try
+            {
+              $exp = Invoke-RestMethod @params
+            }
+            catch
+            {
+              Write-Host $_ -fore green
+            }
+
+      - task: PowerShell@2
+        inputs:
+          targetType: 'inline'
+          script: |
+            $OrganizationName = 'HS2Atlas'
+            $ProjectName = 'Atlas2-CDIP'
+            $PAT = '${{parameters.PAT}}'
+            $WikiName = 'Atlas2-CDIP.wiki'
+            $dateStr = Get-Date -Format "yyyMMdd"
+            $WikiFolder = '/CDIP/Integration/ReleaseNotes' + '/' + $dateStr + '/' + '$(Build.DefinitionName)' + '-' + '$(Build.BuildNumber)'
+            
+            $Header = @{
+                            'Authorization' = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$($PAT)")) 
+                        }
+            $content = [IO.File]::ReadAllText("$(Build.ArtifactStagingDirectory)\releasenotes.md")
+            
+            $uri2 = ('https://dev.azure.com/{0}/{1}/_apis/wiki/wikis/{2}/pages?path={3}&api-version=5.0' -f $OrganizationName, $ProjectName, $WikiName, $WikiFolder)
+                        
+                      
+                        
+            $params = @{
+                'Uri'         = $uri2
+                'Headers'     = $Header
+                'Method'      = 'Put'
+              'ContentType' = 'application/json; charset=utf-8'
+                'body'        = @{content = $Content; } | ConvertTo-Json
+            }
+                        
+            Invoke-RestMethod @params
+       
+
+    
+
+
+
+               
+
+                
+                
+     
+          
