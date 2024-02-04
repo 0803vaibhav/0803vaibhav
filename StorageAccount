@@ -1,0 +1,27 @@
+# Install Azure PowerShell module (uncomment if not already installed)
+# Install-Module -Name Az -Force -AllowClobber -Scope CurrentUser
+
+# Sign in to your Azure account
+Connect-AzAccount
+
+# Set variables
+$resourceGroupName = "YourResourceGroupName"
+$storageAccountName = "YourStorageAccountName"
+$location = "YourLocation"  # e.g., East US, West Europe, etc.
+$containerName = "YourContainerName"
+
+# Create a new resource group
+New-AzResourceGroup -Name $resourceGroupName -Location $location
+
+# Create a new storage account
+New-AzStorageAccount -ResourceGroupName $resourceGroupName -AccountName $storageAccountName -Location $location -SkuName Standard_LRS -Kind StorageV2
+
+
+# Get the storage account context
+$storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -AccountName $storageAccountName
+$storageContext = $storageAccount.Context
+
+# Create a new container in the storage account
+New-AzStorageContainer -Name $containerName -Context $storageContext
+
+Write-Host "Azure Storage Account and Container created successfully."
