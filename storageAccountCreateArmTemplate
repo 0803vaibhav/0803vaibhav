@@ -20,18 +20,11 @@
     {
       "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
       "apiVersion": "2019-06-01",
-      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('container1Name'))]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-      ],
-      "properties": {
-        "publicAccess": "Container"
-      }
-    },
-    {
-      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
-      "apiVersion": "2019-06-01",
-      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('container2Name'))]",
+      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('containerNames')[copyIndex()])]",
+      "copy": {
+        "name": "containerCopy",
+        "count": "[length(parameters('containerNames'))]"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
       ],
@@ -39,7 +32,6 @@
         "publicAccess": "Container"
       }
     }
-    // Add more container resources as needed
   ],
   "parameters": {
     "storageAccountName": {
@@ -55,18 +47,16 @@
         "description": "Location for all resources."
       }
     },
-    "container1Name": {
-      "type": "string",
+    "containerNames": {
+      "type": "array",
       "metadata": {
-        "description": "Name of the first container."
-      }
-    },
-    "container2Name": {
-      "type": "string",
-      "metadata": {
-        "description": "Name of the second container."
+        "description": "Names of the containers.",
+        "example": [
+          "container1",
+          "container2",
+          "container3"
+        ]
       }
     }
-    // Add more container names as needed
   }
 }
