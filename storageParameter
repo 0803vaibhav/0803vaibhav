@@ -7,6 +7,9 @@
     },
     "location": {
       "value": "YourLocation"
+    },
+    "skuName": {
+      "value": "Standard_LRS"
     }
   }
 }
