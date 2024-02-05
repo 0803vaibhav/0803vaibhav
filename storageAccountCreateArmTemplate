@@ -8,31 +8,13 @@
       "name": "[parameters('storageAccountName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "Standard_LRS",
+        "name": "[parameters('skuName')]",
         "tier": "Standard"
       },
       "kind": "StorageV2",
-      "properties": {}
-    }
-  ],
-  "parameters": {
-    "storageAccountName": {
-      "type": "string",
-      "metadata": {
-        "description": "Name of the storage account."
-      }
-    },
-    "location": {
-      "type": "string",
-      "metadata": {
-        "description": "Location for the storage account."
+      "properties": {
+        "accessTier": "Hot"
       }
     }
-  },
-  "outputs": {
-    "storageAccountId": {
-      "type": "string",
-      "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-    }
-  }
+  ]
 }
