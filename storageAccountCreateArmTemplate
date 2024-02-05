@@ -8,13 +8,65 @@
       "name": "[parameters('storageAccountName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "[parameters('skuName')]",
+        "family": "A",
+        "name": "Standard_LRS",
         "tier": "Standard"
       },
       "kind": "StorageV2",
       "properties": {
         "accessTier": "Hot"
       }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2019-06-01",
+      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('container1Name'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "publicAccess": "Container"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2019-06-01",
+      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('container2Name'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "publicAccess": "Container"
+      }
     }
-  ]
+    // Add more container resources as needed
+  ],
+  "parameters": {
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the storage account."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "East US",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "container1Name": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the first container."
+      }
+    },
+    "container2Name": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the second container."
+      }
+    }
+    // Add more container names as needed
+  }
 }
