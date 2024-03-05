@@ -1,10 +1,10 @@
-- 👋 Hi, I’m @0803vaibhav
-- 👀 I’m interested in ...
-- 🌱 I’m currently learning ...
-- 💞️ I’m looking to collaborate on ...
-- 📫 How to reach me ...
-
-<!---
-0803vaibhav/0803vaibhav is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-You can click the Preview link to take a look at your changes.
---->
+{
+        "ActionErrorDetails": "@{union(result('Try'), result('Catch'))}",
+        "ESTimestamp": "@convertTimeZone(utcNow(), 'UTC', 'Eastern Standard Time', 'yyyy-MM-ddTHH:mm:ss.fffffffZ')",
+        "ESTimestamp@odata.type": "Edm.DateTime",
+        "Errors": "",
+        "Payload": "",
+        "RowKey": "@guid()",
+        "RunId": "@{workflow()['run']['name']}",
+        "StatusCode": 500
+    }
